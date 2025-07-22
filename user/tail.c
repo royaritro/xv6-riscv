@@ -59,8 +59,12 @@ int get_lines (int argc, char *argv[]) {
 
 
 void read_last_n_lines_circular_buffer(int lines, int fd) {
-  char *line_buf[MAX_LINES];
-  for (int i = 0; i < MAX_LINES; i++) {
+  char **line_buf = malloc(lines * sizeof(char *));
+  if (!line_buf) {
+    fprintf(2, "failed to allocate line buffer array\n");
+    exit(1);
+  }
+  for (int i = 0; i < lines; i++) {
     line_buf[i] = malloc(MAX_LINE_LEN);
     memset(line_buf[i], 0, MAX_LINE_LEN);
   }
@@ -91,9 +95,10 @@ void read_last_n_lines_circular_buffer(int lines, int fd) {
     printf("%s\n", line_buf[index]);
   }
 
-  for (int i = 0; i < MAX_LINES; i++) {
+  for (int i = 0; i < lines; i++) {
     free(line_buf[i]);
   }
+  free(line_buf);
 }
 
 int
