@@ -2572,7 +2572,11 @@ sbrk8000(char *s)
 
 
 // regression test. test whether exec() leaks memory if one of the
-// arguments is invalid. the test passes if the kernel doesn't panic.
+/**
+ * Repeatedly attempts to execute a command with an invalid argument pointer to test kernel robustness.
+ *
+ * The test passes if the kernel does not panic or leak memory when handling invalid arguments to `exec()`.
+ */
 void
 badarg(char *s)
 {
@@ -3063,6 +3067,16 @@ countfree()
   return n;
 }
 
+/**
+ * Runs the suite of user tests, including quick and optionally slow tests, and checks for memory leaks.
+ *
+ * Runs all quick tests and, unless `quick` is set, all slow tests as well. Compares the number of free memory pages before and after the tests to detect leaks. Supports continuous and single-test modes.
+ *
+ * @param quick If nonzero, only quick tests are run; otherwise, both quick and slow tests are executed.
+ * @param continuous If nonzero, tests are run repeatedly in a loop.
+ * @param justone If non-NULL, only the test with the specified name is run.
+ * @return 0 if all tests pass and no memory is leaked; 1 if any test fails or memory is leaked.
+ */
 int
 drivetests(int quick, int continuous, char *justone) {
   do {
@@ -3093,6 +3107,16 @@ drivetests(int quick, int continuous, char *justone) {
   return 0;
 }
 
+/**
+ * Runs a producer command and pipes its output to the `tail` command, then compares the output to the expected result.
+ *
+ * Forks two child processes: one executes the producer command, writing to a pipe; the other executes `tail`, reading from the producer's output and writing to another pipe. The parent process reads the final output and checks it against the expected output, printing a pass or fail message with the provided description.
+ *
+ * @param desc Description of the test case for reporting.
+ * @param producer_argv Argument vector for the producer command to run.
+ * @param tail_argv Argument vector for the `tail` command to run.
+ * @param expected_output The expected output string to compare against the actual output from `tail`.
+ */
 void
 run_tail_with_pipe(char *desc, char *producer_argv[], char *tail_argv[], char *expected_output)
 {
@@ -3172,6 +3196,15 @@ run_tail_with_pipe(char *desc, char *producer_argv[], char *tail_argv[], char *e
   }
 }
 
+/**
+ * Runs the `tail` command with specified arguments, captures its output, and compares it to the expected result.
+ *
+ * Prints a pass or fail message based on whether the actual output matches the expected output.
+ * 
+ * @param desc Description of the test case.
+ * @param argv Argument vector for the `tail` command.
+ * @param expected_output The expected output string from running `tail` with the given arguments.
+ */
 void
 run_tail_test(char *desc, char *argv[], char *expected_output)
 {
@@ -3223,6 +3256,16 @@ run_tail_test(char *desc, char *argv[], char *expected_output)
   }
 }
 
+/**
+ * Runs a comprehensive suite of tests for the `tail` command, verifying correct output and error handling for various argument combinations and input sources.
+ *
+ * The tests include:
+ * - Positive cases: reading the last N lines from a file, default behavior, and requesting more lines than exist.
+ * - Negative cases: invalid flags, non-numeric arguments, missing or extra arguments, and non-existent files.
+ * - Pipe-based cases: reading from standard input via a pipe, with and without line count arguments.
+ *
+ * Results are printed for each test, indicating pass or failure.
+ */
 void
 tailtest(char *s)
 {
@@ -3290,6 +3333,12 @@ tailtest(char *s)
   printf("test tail all done\n");
 }
 
+/**
+ * Entry point for the usertests suite, parsing command-line arguments and running selected tests.
+ *
+ * Supports running all tests, only quick tests, continuous mode, or a specific test by name.
+ * Exits with status 0 if all tests pass, or 1 if any test fails or on invalid usage.
+ */
 int
 main(int argc, char *argv[])
 {

@@ -41,10 +41,11 @@
 
 
  /**
-  * is_number - Check if a string represents a valid number
-  * @s: The string to check
-  * Returns: 1 if the string is a valid number, 0 otherwise
-  */
+ * Checks whether the given string consists only of numeric digits.
+ *
+ * @param s Input string to check.
+ * @return 1 if the string contains only digits (0-9), 0 otherwise.
+ */
 
 int is_number(char *s) {
   for (int i = 0; s[i]; i++) {
@@ -54,12 +55,8 @@ int is_number(char *s) {
 }
 
 /**
- * validate_args - Validate command line arguments for tail
- * @argc: Argument count
- * @argv: Argument vector
- *
- * Ensures the correct usage of the tail command and checks if the file exists.
- * Exits with an error message if the arguments are invalid.
+ * Validates command-line arguments for the tail command, ensuring correct usage patterns and file accessibility.
+ * Exits with an error message if arguments are invalid or if specified files cannot be opened.
  */
 void validate_args(int argc, char *argv[]) {
 
@@ -129,10 +126,13 @@ else {
 }
 
 /**
- * get_lines - Get the number of lines to read from command line arguments
- * @argc: Argument count
- * @argv: Argument vector
- * Returns: The number of lines to read, default is 10 if not specified
+ * Determines the number of lines to print based on command line arguments.
+ *
+ * If the `-n` option is provided, returns the specified number of lines; otherwise, defaults to 10.
+ *
+ * @param argc Argument count.
+ * @param argv Argument vector.
+ * @return The number of lines to print.
  */
 int get_lines (int argc, char *argv[]) {
   if (argc == 4 && strcmp(argv[1], "-n") == 0) {
@@ -144,10 +144,11 @@ int get_lines (int argc, char *argv[]) {
 }
 
 /**
- * read_last_n_lines_circular_buffer - Read the last N lines from a file using a circular buffer
- * @lines: Number of lines to read
- * @fd: File descriptor of the file to read from
- * This function reads the file line by line and stores the last N lines in a circular buffer.
+ * Prints the last specified number of lines from a file descriptor using a circular buffer.
+ *
+ * Reads input line by line, storing only the most recent lines up to the given limit, and outputs them in order after reading completes. Lines longer than the maximum allowed length are truncated.
+ * @param lines Number of lines to print from the end of the input.
+ * @param fd File descriptor to read from.
  */
 
 void read_last_n_lines_circular_buffer(int lines, int fd) {
@@ -213,6 +214,12 @@ void read_last_n_lines_circular_buffer(int lines, int fd) {
   free(line_buf);
 }
 
+/**
+ * Entry point for the tail command, printing the last N lines from a file or standard input.
+ *
+ * Validates command-line arguments, determines the number of lines to print, and reads from either standard input or a specified file. Prints usage errors and exits on invalid input or file errors.
+ * @returns Exit status code (does not return under normal operation).
+ */
 int
 main(int argc, char *argv[])
 {
