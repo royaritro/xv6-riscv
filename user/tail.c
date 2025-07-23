@@ -32,6 +32,8 @@
  *
  * Both the implementation uses a circular buffer to store the last N lines.
  * This allows efficient memory usage and quick access to the last lines without  needing to read the entire file into memory.
+ * 
+ * To run test cases, run usertests tailtest
  *
  * Author: Aritro Roy (roy.aritro@nyu.edu)
  */
@@ -67,13 +69,25 @@ void validate_args(int argc, char *argv[]) {
   */
   struct stat st;
   fstat(0, &st);
-
+/**
+   * If the arguments are 4 or 2 and not -n, check if the file exists.
+   * If it does not exist, print an error message and exit.
+   */
+  if ((argc == 4 && strcmp(argv[1], "-n") == 0 && is_number(argv[2])) || (argc == 2 && strcmp(argv[1], "-n") != 0)) {
+    int fd = open(argv[argc - 1], O_RDONLY);
+    if (fd < 0) {
+      fprintf(2, "tail: cannot open file %s\n", argv[argc - 1]);
+      exit(1);
+    }
+    close(fd);
+  }
+  
   /**
    * Validate args with 4 arguments, which should be in the format:
    * tail -n <number_of_lines> <file>
    * If the arguments do not match this format, print usage and exit.
    */
-  if (argc == 4) {
+  else if (argc == 4) {
     if (strcmp(argv[1], "-n") != 0 || !is_number(argv[2])) {
       fprintf(2, "Usage: tail -n <number_of_lines> <file>\n");
       exit(1);
@@ -100,25 +114,16 @@ void validate_args(int argc, char *argv[]) {
       fprintf(2, "Usage: tail <file>\n");
       exit(1);
     }
-} else {
+} else if (argc == 1 && st.type != T_DEV) {
+  // 
+}
+else {
     fprintf(2, "Usage:\n");
     fprintf(2, "  tail -n <lines> <file>\n");
     fprintf(2, "  cat file | tail -n <lines>\n");
     fprintf(2, "  tail <file>\n");
     fprintf(2, "  cat file | tail\n");
     exit(1);
-}
-  /**
-   * If the arguments are 4 or 2 and not -n, check if the file exists.
-   * If it does not exist, print an error message and exit.
-   */
-  if (argc == 4 || (argc == 2 && strcmp(argv[1], "-n") != 0)) {
-    int fd = open(argv[argc - 1], O_RDONLY);
-    if (fd < 0) {
-      fprintf(2, "tail: cannot open file %s\n", argv[argc - 1]);
-      exit(1);
-    }
-    close(fd);
   }
 }
 
