@@ -3285,8 +3285,9 @@ tailtest(char *s)
   char *p3[] = {"tail", "-n", "10", 0};
   run_tail_with_pipe("Pipe: request more lines than file has", cat, p3, "a\nb\nc\nd\ne\nf\n");
 
-   printf("\n ==============\n Testing Pipe cases completed\n ==============\n");
+  printf("\n ==============\n Testing Pipe cases completed\n ==============\n");
 
+  unlink("test.txt");
   printf("test tail all done\n");
 }
 

@@ -47,6 +47,7 @@
   */
 
 int is_number(char *s) {
+  if (!s || !s[0]) return 0;
   for (int i = 0; s[i]; i++) {
     if (s[i] < '0' || s[i] > '9') return 0;
   }
@@ -154,6 +155,7 @@ void read_last_n_lines_circular_buffer(int lines, int fd) {
   /**
    * Allocate memory for the circular buffer to hold the last N lines.
    */
+  if (lines <= 0) return;
   char **line_buf = malloc(lines * sizeof(char *));
   if (!line_buf) {
     fprintf(2, "failed to allocate line buffer array\n");
@@ -161,6 +163,14 @@ void read_last_n_lines_circular_buffer(int lines, int fd) {
   }
   for (int i = 0; i < lines; i++) {
     line_buf[i] = malloc(MAX_LINE_LEN);
+    if (!line_buf[i]) {
+      for (int j = 0; j < i; j++) {
+        free(line_buf[j]);
+      }
+      free(line_buf);
+      fprintf(2, "failed to allocate line buffer\n");
+      exit(1);
+    }
     memset(line_buf[i], 0, MAX_LINE_LEN);
   }
 
