@@ -203,6 +203,13 @@ void read_last_n_lines_circular_buffer(int lines, int fd) {
     }
   }
 
+  // Handle the last line if it doesn't end with newline
+  if (line_idx > 0) {
+    line[line_idx] = '\0';
+    strcpy(line_buf[head], line);
+    if (count < lines) count++;
+  }
+
   /**
    * 
    * Print the last N lines stored in the circular buffer.
