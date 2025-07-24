@@ -211,7 +211,8 @@ void read_last_n_lines_circular_buffer(int lines, int fd) {
   int start = (head - count + lines) % lines;
   for (int i = 0; i < count; i++) {
     int index = (start + i) % lines;
-    printf("%s\n", line_buf[index]);
+    write(1, line_buf[index], strlen(line_buf[index]));
+    write(1, "\n", 1);
   }
 
   /**
