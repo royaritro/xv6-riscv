@@ -5,6 +5,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "uproc.h"
 
 struct cpu cpus[NCPU];
 
@@ -106,6 +107,31 @@ allocpid()
 // If found, initialize state required to run in the kernel,
 // and return with p->lock held.
 // If there are no free procs, or a memory allocation fails, return 0.
+
+int
+getprocs(uint64 uaddr) {
+  int no_of_processes = 0;
+  struct proc *p;
+  struct uproc kbuf[NPROC];
+  for (int i = 0; i < NPROC; i++) {
+    acquire(&proc[i].lock);
+    if (proc[i].state != UNUSED) {
+        struct uproc up;
+        p = &proc[i];
+        up.pid = p->pid;
+        up.state = p->state;
+        safestrcpy(up.name, p->name, sizeof(up.name));
+        kbuf[no_of_processes++] = up;
+    }
+    release(&proc[i].lock);
+  }
+ if (copyout(myproc()->pagetable, uaddr, (char *)kbuf, 
+    no_of_processes * sizeof(struct uproc)) < 0) {
+        return -1;
+    }
+    return no_of_processes;
+}
+
 static struct proc*
 allocproc(void)
 {
