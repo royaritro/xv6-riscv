@@ -3,8 +3,6 @@
 #include "user/user.h"
 #include "kernel/uproc.h"
 
-// TODO: You may need to define additional constants or structures
-// Hint: Look at kernel/proc.h for process states
 
 static const char *states[] = {
     "UNUSED",
@@ -21,11 +19,15 @@ main(int argc, char *argv[])
   static struct uproc table[64];
   uint64 addr = (uint64)table;
 
+  printf("ps: calling getprocs() with addr=%p (%ld)\n", (void *)addr, addr);
+
   int n = getprocs(addr);
+  printf("ps: getprocs() returned %d\n", n);
   if (n < 0) {
     fprintf(2, "ps: getprocs failed\n");
     exit(1);
   }
+  printf("ps: dumping process table from user buffer after syscall:\n");
   printf("PID   STATE      NAME\n");
   for (int i = 0; i < n; i++) {
     if (table[i].pid == 0) continue;

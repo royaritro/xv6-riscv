@@ -103,34 +103,58 @@ allocpid()
   return pid;
 }
 
-// Look in the process table for an UNUSED proc.
-// If found, initialize state required to run in the kernel,
-// and return with p->lock held.
-// If there are no free procs, or a memory allocation fails, return 0.
+static void
+fill_uproc(struct uproc *up, struct proc *p) {
+  up->pid = p->pid;
+  up->state = p->state;
+  safestrcpy(up->name, p->name, sizeof(up->name));
+  printf("getprocs: kernel found pid=%d state=%d name=%s\n",
+          up->pid, up->state, up->name);
+}
 
+static int
+copy_procs_to_user(uint64 uaddr, struct uproc *kbuf, int count) {
+    pagetable_t pagetable = myproc()->pagetable;     
+    char *src_buffer = (char *)kbuf;
+    int total_bytes = count * sizeof(struct uproc);
+
+    printf("getprocs: attempting copyout of %d bytes to user address %p\n",
+           total_bytes, (void *)uaddr);
+    int rc = copyout(pagetable, uaddr, src_buffer, total_bytes);
+    if (rc < 0) {
+        return -1;
+    }
+    return 0;
+}
+
+/**
+ * getprocs - Get a list of processes and their states.
+ * @uaddr: User address to copy the process information to.
+ * Returns the number of processes copied to user space,
+ * or -1 on error.
+ */
+
+ 
 int
 getprocs(uint64 uaddr) {
   int no_of_processes = 0;
-  struct proc *p;
   struct uproc kbuf[NPROC];
   for (int i = 0; i < NPROC; i++) {
     acquire(&proc[i].lock);
     if (proc[i].state != UNUSED) {
-        struct uproc up;
-        p = &proc[i];
-        up.pid = p->pid;
-        up.state = p->state;
-        safestrcpy(up.name, p->name, sizeof(up.name));
-        kbuf[no_of_processes++] = up;
+       fill_uproc(&kbuf[no_of_processes++], &proc[i]);
     }
     release(&proc[i].lock);
   }
- if (copyout(myproc()->pagetable, uaddr, (char *)kbuf, 
-    no_of_processes * sizeof(struct uproc)) < 0) {
-        return -1;
-    }
-    return no_of_processes;
+  copy_procs_to_user(uaddr, kbuf, no_of_processes);
+  return no_of_processes;
 }
+
+
+// Look in the process table for an UNUSED proc.
+// If found, initialize state required to run in the kernel,
+// and return with p->lock held.
+// If there are no free procs, or a memory allocation fails, return 0.
 
 static struct proc*
 allocproc(void)
