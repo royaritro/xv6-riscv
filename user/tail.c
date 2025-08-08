@@ -159,7 +159,11 @@ void read_last_n_lines_circular_buffer(int lines, int fd) {
   /**
    * Allocate memory for the circular buffer to hold the last N lines.
    */
-  if (lines <= 0) return;
+  if (lines <= 0) {
+    char drainbuf[512];
+    while (read(fd, drainbuf, sizeof(drainbuf)) > 0);
+    return;
+  };
   char **line_buf = malloc(lines * sizeof(char *));
   if (!line_buf) {
     fprintf(2, "failed to allocate line buffer array\n");
