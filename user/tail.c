@@ -75,6 +75,10 @@ void validate_args(int argc, char *argv[]) {
    * If the arguments are 4 or 2 and not -n, check if the file exists.
    * If it does not exist, print an error message and exit.
    */
+  if (argc == 1 || ((argc == 3) && (strcmp(argv[1], "-n") == 0) && is_number(argv[2]))) {
+    return;
+  }
+
   if ((argc == 4 && strcmp(argv[1], "-n") == 0 && is_number(argv[2])) || (argc == 2 && strcmp(argv[1], "-n") != 0)) {
     int fd = open(argv[argc - 1], O_RDONLY);
     if (fd < 0) {
@@ -248,7 +252,7 @@ main(int argc, char *argv[])
    * If the input is not from a device (T_DEV), read the last N lines from standard input.
    * Otherwise, open the file specified in the arguments and read the last N lines from it
    */
-  if (st.type != T_DEV) {
+  if (st.type != T_DEV || (argc == 3 && strcmp(argv[1], "-n") == 0 && is_number(argv[2])) || argc == 1) {
     read_last_n_lines_circular_buffer(lines, 0);
   } else {
     int fd = open(argv[argc - 1], O_RDONLY);
