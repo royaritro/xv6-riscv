@@ -2585,6 +2585,7 @@ badarg(char *s)
   
   exit(0);
 }
+void tailtest(char *);
 
 struct test {
   void (*f)(char *);
@@ -2650,6 +2651,7 @@ struct test {
   {sbrklast, "sbrklast"},
   {sbrk8000, "sbrk8000"},
   {badarg, "badarg" },
+  {tailtest, "tailtest"},
 
   { 0, 0},
 };
@@ -3089,6 +3091,204 @@ drivetests(int quick, int continuous, char *justone) {
     }
   } while(continuous);
   return 0;
+}
+
+void
+run_tail_with_pipe(char *desc, char *producer_argv[], char *tail_argv[], char *expected_output)
+{
+  int p1[2];
+  int p2[2];
+
+  pipe(p1);
+  pipe(p2);
+
+  int producer_pid = fork();
+  if (producer_pid == 0) {
+    close(1); 
+    if (dup(p1[1]) != 1) {
+      fprintf(2, "\033[0;31mdup to stdout failed in producer\033[0m\n");
+      exit(1);
+    }
+    close(p1[0]);
+    close(p1[1]);
+    close(p2[0]);
+    close(p2[1]);
+
+    exec(producer_argv[0], producer_argv);
+    fprintf(2, "\033[0;31m%s exec failed\033[0m\n", producer_argv[0]);
+    exit(1);
+  }
+
+  int tail_pid = fork();
+  if (tail_pid == 0) {
+    close(0);
+    if (dup(p1[0]) != 0) {
+      fprintf(2, "\033[0;31mdup to stdin failed in tail\033[0m\n");
+      exit(1);
+    }
+
+    close(1);
+    if (dup(p2[1]) != 1) {
+      fprintf(2, "\033[0;31mdup to stdout failed in tail\033[0m\n");
+      exit(1);
+    }
+
+    close(p1[0]);
+    close(p1[1]);
+    close(p2[0]);
+    close(p2[1]);
+
+    exec("tail", tail_argv);
+    fprintf(2, "\033[0;31mtail exec failed\033[0m\n");
+    exit(1);
+  }
+
+  
+  close(p1[0]);
+  close(p1[1]);
+  close(p2[1]);
+
+  char buf[1024];
+  int total = 0;
+  int n;
+
+  while ((n = read(p2[0], buf + total, sizeof(buf) - total - 1)) > 0) {
+    total += n;
+  }
+  buf[total] = '\0';
+  close(p2[0]);
+
+  wait(0); 
+  wait(0);
+
+  if (strcmp(buf, expected_output) == 0) {
+    printf("\033[0;32mPASS\033[0m: %s\n", desc);
+    // printf("Expected:\n%s", expected_output);
+    // printf("Got:\n%s", buf);
+  } else {
+    printf("\033[0;31mFAIL\033[0m: %s\n", desc);
+    // printf("Expected:\n%s", expected_output);
+    // printf("Got:\n%s", buf);
+  }
+}
+
+void
+run_tail_test(char *desc, char *argv[], char *expected_output)
+{
+  int p[2];
+  pipe(p);
+
+  int pid = fork();
+  if (pid == 0) {
+    close(1);
+    if (dup(p[1]) != 1) {
+      fprintf(2, "dup to stdout failed\n");
+      exit(1);
+    }
+
+    close(2);
+    if (dup(p[1]) != 2) {
+      fprintf(2, "dup to stderr failed\n");
+      exit(1);
+    }
+
+    close(p[0]);
+    close(p[1]);
+    exec("tail", argv);
+    fprintf(2, "tail exec failed\n");
+    exit(1);
+  }
+
+  close(p[1]);
+
+  char buf[1024];  
+  int total = 0, n;
+
+  while ((n = read(p[0], buf + total, sizeof(buf) - total - 1)) > 0) {
+    total += n;
+  }
+
+  buf[total] = '\0';
+  close(p[0]);
+  wait(0);
+
+  if (strcmp(buf, expected_output) == 0) {
+    printf("\033[0;32mPASS\033[0m: %s\n", desc); 
+    // printf("Expected:\n%s", expected_output);
+    // printf("Got:\n%s", buf);
+  } else {
+    printf("\033[0;31mFAIL\033[0m: %s\n", desc);
+    // printf("Expected:\n%s", expected_output);
+    // printf("Got:\n%s", buf);
+  }
+}
+
+void
+tailtest(char *s)
+{
+  int fd;
+  printf("Running: tailtest\n");
+
+  // Prepare test file
+  fd = open("test.txt", O_CREATE | O_WRONLY);
+  write(fd, "a\nb\nc\nd\ne\nf\n", 12);
+  close(fd);
+
+  // Valid cases
+
+  printf("\n ==============\n Testing Positive cases\n ==============\n");
+  char *t1[] = {"tail", "test.txt", 0};
+  run_tail_test("Default behavior with file", t1, "a\nb\nc\nd\ne\nf\n");
+
+  char *t2[] = {"tail", "-n", "6", "test.txt", 0};
+  run_tail_test("Exact number of lines in file", t2, "a\nb\nc\nd\ne\nf\n");
+
+  char *t3[] = {"tail", "-n", "10", "test.txt", 0};
+  run_tail_test("Requesting more lines than exist", t3, "a\nb\nc\nd\ne\nf\n");
+
+  char *t4[] = {"tail", "-n", "2", "test.txt", 0};
+  run_tail_test("Exact number of lines in file", t4, "e\nf\n");
+  printf("\n ==============\n Positive cases completed\n ==============\n");
+
+  // Negative test cases
+   printf("\n ==============\n Testing Negative cases\n ==============\n");
+
+  char *n1[] = {"tail", "-n", "3", "nofile.txt", 0};
+  run_tail_test("File does not exist", n1, "tail: cannot open file nofile.txt\n");
+
+  char *n2[] = {"tail", "-m", "3", "test.txt", 0};
+  run_tail_test("Invalid flag", n2, "Usage: tail -n <number_of_lines> <file>\n");
+
+  char *n3[] = {"tail", "-n", "three", "test.txt", 0};
+  run_tail_test("Non-numeric argument", n3, "Usage: tail -n <number_of_lines> <file>\n");
+
+  char *n4[] = {"tail", "-n", "test.txt", 0};
+  run_tail_test("Missing value after -n", n4, "Usage: tail -n <number_of_lines>\nEither provide a file or pipe input into tail.\n");
+
+  char *n5[] = {"tail", "-n", "3", "test.txt", "extra.txt", 0};
+  run_tail_test("Extra arguments", n5, "Usage:\n  tail -n <lines> <file>\n  cat file | tail -n <lines>\n  tail <file>\n  cat file | tail\n");
+
+   printf("\n ==============\n Testing Negative cases completed\n ==============\n");
+  
+
+  // Pipe-based tests
+   printf("\n ==============\n Testing Pipe cases\n ==============\n");
+
+  char *cat[] = {"cat", "test.txt", 0};
+
+  char *p1[] = {"tail", 0};
+  run_tail_with_pipe("Pipe: default behavior", cat, p1, "a\nb\nc\nd\ne\nf\n");
+
+  char *p2[] = {"tail", "-n", "2", 0};
+  run_tail_with_pipe("Pipe: last 2 lines", cat, p2, "e\nf\n");
+
+  char *p3[] = {"tail", "-n", "10", 0};
+  run_tail_with_pipe("Pipe: request more lines than file has", cat, p3, "a\nb\nc\nd\ne\nf\n");
+
+  printf("\n ==============\n Testing Pipe cases completed\n ==============\n");
+
+  unlink("test.txt");
+  printf("test tail all done\n");
 }
 
 int
