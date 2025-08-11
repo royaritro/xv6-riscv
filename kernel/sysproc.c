@@ -91,3 +91,10 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+uint64 
+sys_getprocs(void) {
+  uint64 uaddr;
+  argaddr(0, &uaddr);
+  return getprocs(uaddr);
+}
