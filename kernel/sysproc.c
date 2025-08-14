@@ -98,3 +98,10 @@ sys_getprocs(void) {
   argaddr(0, &uaddr);
   return getprocs(uaddr);
 }
+
+uint64
+sys_meminfo(void) {
+  uint64 uaddr;
+  argaddr(0, &uaddr);
+  return getmeminfo(uaddr);
+}

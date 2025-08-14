@@ -23,6 +23,7 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 int getprocs(uint64 uaddr);
+int meminfo(uint64 uaddr);
 
 // ulib.c
 int stat(const char*, struct stat*);

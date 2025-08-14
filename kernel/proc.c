@@ -6,6 +6,7 @@
 #include "proc.h"
 #include "defs.h"
 #include "uproc.h"
+#include "meminfo.h"
 
 struct cpu cpus[NCPU];
 
@@ -742,4 +743,37 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+
+extern struct run *freelist;
+extern struct spinlock kmem;
+
+uint64 getmeminfo(uint64 uaddr) {
+  struct sys_meminfo info;
+  uint64 total_pages = (PHYSTOP - KERNBASE) / PGSIZE;
+  uint64 free_pages = getfreepages();
+
+  info.total_pages = total_pages;
+  info.free_pages = free_pages;
+  info.used_pages = total_pages - free_pages;
+
+  int count = 0;
+  struct proc *p;
+  for (p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+    if (p->state != UNUSED) {
+      info.pinfo[count].pid = p->pid;
+      safestrcpy(info.pinfo[count].name, p->name, sizeof(p->name));
+      info.pinfo[count].state = p->state;
+      info.pinfo[count].size_pages = p->sz / PGSIZE;
+      count++;
+    }
+    release(&p->lock);
+  }
+  info.nprocs = count;
+
+  if (copyout(myproc()->pagetable, uaddr, (char*)&info, sizeof(info)) < 0)
+    return -1;
+  
+  return 0;
 }
