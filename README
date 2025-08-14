@@ -44,3 +44,9 @@ You will need a RISC-V "newlib" tool chain from
 https://github.com/riscv/riscv-gnu-toolchain, and qemu compiled for
 riscv64-softmmu.  Once they are installed, and in your shell
 search path, you can run "make qemu".
+
+
+lldb
+(lldb) target create kernel --arch riscv64
+(lldb) gdb-remote 25501
+(lldb) b trap.c:67; b syscall.c:147; b sysproc.c:98; b proc.c:142; b proc.c:146; b proc.c:118
